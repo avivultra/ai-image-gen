@@ -28,6 +28,12 @@ jobs:
           sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc /opt/hostedtoolcache/CodeQL
           df -h /
 
+      - name: Extra swap (the inpaint run was killed once at the RAM limit)
+        run: |
+          sudo fallocate -l 12G /extra.swap && sudo chmod 600 /extra.swap
+          sudo mkswap /extra.swap && sudo swapon /extra.swap
+          free -m
+
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
@@ -47,7 +53,11 @@ jobs:
       - name: Generate
         env:
           HF_HUB_DISABLE_TELEMETRY: '1'
-        run: python run_jobs.py
+        run: |
+          # log memory every 10 s so a kill at the RAM limit is visible in the log
+          ( while true; do free -m | awk 'NR==2{printf "mem used %s MB, available %s MB
+",$3,$7}'; sleep 10; done ) &
+          python -u run_jobs.py
 
       - name: Commit the images
         run: |
