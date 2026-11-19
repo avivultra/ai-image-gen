@@ -1,0 +1,11 @@
+{
+  "mode": "inpaint",
+  "image": "outputs/sink_after/sink_after_s22.png",
+  "mask": "masks/sink.png",
+  "prompt": "photo of an old neglected bathroom vanity close-up, worn dull chrome single-lever faucet crusted with white limescale and green-brown corrosion at its base, a drop of water dripping from the spout, hard-water stains and grime on the light grey quartz countertop around the faucet, black moldy cracked silicone caulk peeling away where the countertop meets the white subway tile backsplash, soft natural window daylight, realistic interior photography, Canon EOS R5, 35mm lens, f/4, sharp focus, true-to-life colors, high detail",
+  "seeds": [
+    5,
+    6
+  ],
+  "strength": 0.95
+}

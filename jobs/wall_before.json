@@ -1,0 +1,12 @@
+{
+  "mode": "inpaint",
+  "image": "inputs/wall_prefill.png",
+  "mask": "masks/wall.png",
+  "prompt": "photo of a bare empty off-white living room wall with no shelf and no pictures, a long thin hairline crack running diagonally through the plaster, several small old screw holes and rough patched filler spots, grey scuff marks and faint dirty stains, slightly dingy old paint, soft natural daylight from a side window, realistic interior photography, Canon EOS R5, 35mm lens, f/5.6, sharp focus, true-to-life colors, high detail",
+  "seeds": [
+    5,
+    6
+  ],
+  "strength": 0.85,
+  "feather": 12
+}
