@@ -1,0 +1,8 @@
+{
+  "mode": "txt2img",
+  "seeds": [
+    1,
+    2
+  ],
+  "prompt": "photo of a freshly painted smooth off-white living room wall, one solid oak floating wall shelf mounted at chest height holding a few hardcover books and a small terracotta vase, clean white baseboard, light oak wooden floor, soft natural daylight from a side window, realistic interior photography, Canon EOS R5, 35mm lens, f/5.6, sharp focus, true-to-life colors, high detail"
+}
