@@ -1,0 +1,45 @@
+name: diag
+
+# Speed diagnostic, by hand only: float32 vs bfloat16 on this runner's CPU (see diag.py).
+on:
+  workflow_dispatch:
+
+jobs:
+  diag:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Free disk space and add swap
+        run: |
+          sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc /opt/hostedtoolcache/CodeQL
+          sudo fallocate -l 12G /extra.swap && sudo chmod 600 /extra.swap
+          sudo mkswap /extra.swap && sudo swapon /extra.swap
+          free -m
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install (CPU build of PyTorch)
+        run: |
+          pip install --quiet torch --index-url https://download.pytorch.org/whl/cpu
+          pip install --quiet diffusers transformers accelerate safetensors pillow
+
+      - name: Micro benchmark
+        run: python -u diag.py micro
+
+      - name: Download the model
+        run: |
+          mkdir -p models
+          curl -L --fail -s -o models/RealVisXL_V5.0_fp16.safetensors \
+            https://huggingface.co/SG161222/RealVisXL_V5.0/resolve/main/RealVisXL_V5.0_fp16.safetensors
+
+      - name: Inpaint, float32
+        run: python -u diag.py model float32
+
+      - name: Inpaint, bfloat16
+        timeout-minutes: 30
+        continue-on-error: true
+        run: python -u diag.py model bfloat16
