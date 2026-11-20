@@ -7,12 +7,14 @@ A job file:
 Results land in outputs/<job name>/<job name>_s<seed>.png. One seed runs at a time, and a seed whose PNG
 already exists is skipped, so a cancelled run resumes where it stopped. With COMMIT_EACH=1 (the workflow)
 every finished image is committed and pushed at once, so nothing is lost if the run is cut short.
+ONLY_JOB=<job name> limits the run to one job (the workflow's "job" input), so two jobs can run side by side.
 """
 import json
 import os
 import pathlib
 import subprocess
 import sys
+import time
 
 ROOT = pathlib.Path(__file__).resolve().parent
 
@@ -22,13 +24,19 @@ def push(path: pathlib.Path, msg: str):
     if subprocess.run(["git", "diff", "--cached", "--quiet"], cwd=ROOT).returncode == 0:
         return
     subprocess.run(["git", "commit", "-q", "-m", msg], cwd=ROOT, check=True)
-    subprocess.run(["git", "pull", "-q", "--rebase", "--autostash"], cwd=ROOT, check=True)
-    subprocess.run(["git", "push", "-q"], cwd=ROOT, check=True)
+    for attempt in range(4):  # another run may push at the same moment
+        subprocess.run(["git", "pull", "-q", "--rebase", "--autostash"], cwd=ROOT, check=True)
+        if subprocess.run(["git", "push", "-q"], cwd=ROOT).returncode == 0:
+            return
+        time.sleep(5 * (attempt + 1))
+    raise SystemExit("git push failed")
 
 
 ran = 0
 for job in sorted((ROOT / "jobs").glob("*.json")):
     name = job.stem
+    if os.environ.get("ONLY_JOB") and name != os.environ["ONLY_JOB"]:
+        continue
     out = ROOT / "outputs" / name
     j = json.loads(job.read_text(encoding="utf-8"))
     for seed in j.get("seeds", [1]):

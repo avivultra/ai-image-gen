@@ -1,5 +1,6 @@
 """Photoreal image generation with SDXL (RealVisXL V5.0). Runs on CUDA when there is a GPU, else on the CPU
-(GitHub-hosted runners have no GPU: float32 there, about 11 GB of RAM).
+(GitHub-hosted runners have no GPU: bfloat16 where the CPU has native bf16 instructions, about 7 GB of RAM,
+else float32, about 11 GB).
 
   python gen.py txt2img --prompt "..." --out DIR --name NAME [--seeds 1 2] [--w 1024 --h 768]
   python gen.py inpaint --image after.png --mask mask.png --prompt "..." --out DIR --name NAME [--strength 0.95]
@@ -25,34 +26,37 @@ NEGATIVE = (
 )
 CUDA = torch.cuda.is_available()
 DEVICE = "cuda" if CUDA else "cpu"
+# bfloat16 is only fast on CPUs with avx512_bf16 / AMX; elsewhere PyTorch runs it in a fallback path that is
+# orders of magnitude slower than float32. GitHub hands out both kinds of runner, so decide at run time.
+CPU_BF16 = not CUDA and bool(torch.ops.mkldnn._is_mkldnn_bf16_supported())
+CPU_FP32 = not CUDA and not CPU_BF16
 
 
 def load(mode: str):
     """Load only the pipeline this mode needs. (Building the inpaint pipeline from a txt2img one with
     from_pipe kept a second set of references and pushed a 16 GB runner into swap: 90 s per step.)
 
-    CPU: the fp16 file is loaded as it is (7 GB) and each part is upcast to float32 only when it is used,
-    see embed(). bfloat16 is not an option there: without native bf16 instructions PyTorch runs it in a
-    slow fallback path (see final/NOTES.md)."""
+    CPU without native bf16: the fp16 file is loaded as it is (7 GB) and each part is upcast to float32 only
+    when it is used, see embed()."""
     if not CUDA:
         torch.set_num_threads(os.cpu_count() or 4)
     cls = StableDiffusionXLInpaintPipeline if mode == "inpaint" else StableDiffusionXLPipeline
-    pipe = cls.from_single_file(MODEL, torch_dtype=torch.float16, use_safetensors=True)
+    pipe = cls.from_single_file(MODEL, torch_dtype=torch.bfloat16 if CPU_BF16 else torch.float16, use_safetensors=True)
     pipe.scheduler = DPMSolverMultistepScheduler.from_config(
         pipe.scheduler.config, use_karras_sigmas=True, algorithm_type="dpmsolver++"
     )
     pipe.vae.config.force_upcast = True  # decode in fp32: no black images
     if CUDA:
         pipe.enable_model_cpu_offload()
-        pipe.enable_attention_slicing()
+    pipe.enable_attention_slicing()
     pipe.vae.enable_tiling()
     return pipe
 
 
 def embed(pipe, prompt: str, negative: str) -> dict:
-    """Encode the prompt once. On the CPU the text encoders are then dropped and the UNet and VAE are upcast
-    to float32, so the float32 run peaks near 11 GB instead of 14 GB (the runner has 16 GB)."""
-    if not CUDA:
+    """Encode the prompt once. On the CPU the text encoders are then dropped; in the float32 case the UNet and
+    VAE are upcast after that, so the run settles near 11 GB instead of 14 GB (the runner has 16 GB)."""
+    if CPU_FP32:
         pipe.text_encoder.to(torch.float32)
         pipe.text_encoder_2.to(torch.float32)
     with torch.no_grad():
@@ -61,6 +65,7 @@ def embed(pipe, prompt: str, negative: str) -> dict:
     if not CUDA:
         pipe.text_encoder = pipe.text_encoder_2 = None
         gc.collect()
+    if CPU_FP32:
         pipe.unet.to(torch.float32)
         pipe.vae.to(torch.float32)
     return dict(prompt_embeds=pe, negative_prompt_embeds=ne, pooled_prompt_embeds=ppe,
@@ -68,6 +73,7 @@ def embed(pipe, prompt: str, negative: str) -> dict:
 
 
 def run(a):
+    print(f"device {DEVICE}, dtype {'bfloat16' if CPU_BF16 else 'float32' if CPU_FP32 else 'float16'}", flush=True)
     pipe = load(a.mode)
     emb = embed(pipe, a.prompt, a.negative or NEGATIVE)
     out = pathlib.Path(a.out)

@@ -8,12 +8,17 @@ on:
     branches: [main]
     paths: ['jobs/**', 'masks/**']
   workflow_dispatch:
+    inputs:
+      job:
+        description: 'Run only this job (file name in jobs/ without .json); empty = all'
+        required: false
+        default: ''
 
 permissions:
   contents: write
 
 concurrency:
-  group: generate
+  group: generate-${{ inputs.job }}
   cancel-in-progress: false
 
 jobs:
@@ -54,6 +59,7 @@ jobs:
         env:
           HF_HUB_DISABLE_TELEMETRY: '1'
           COMMIT_EACH: '1'
+          ONLY_JOB: ${{ inputs.job }}
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
@@ -68,5 +74,4 @@ jobs:
           git add outputs
           git diff --cached --quiet && { echo "nothing new"; exit 0; }
           git commit -m "Generated images [skip ci]"
-          git pull --rebase --autostash
-          git push
+          for i in 1 2 3 4; do git pull --rebase --autostash && git push && break; sleep 10; done
