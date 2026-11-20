@@ -3,6 +3,27 @@
 You are continuing this task in a cloud session. Everything you need is in this repository.
 Nothing here belongs to the website itself; only the four final photos leave this repo.
 
+## Status (read this first)
+
+Done so far:
+- **Afters chosen:** `outputs/sink_after/sink_after_s22.png` (sink) and `outputs/wall_after/wall_after_s1.png` (wall).
+- **Masks built** with `make_masks.py`: `masks/sink.png`, `masks/wall.png`. The wall's shelf area is pre-filled
+  with bare wall in `inputs/wall_prefill.png`, so the inpaint only has to add damage.
+- **Inpaint jobs queued:** `jobs/sink_before.json` (strength 0.95) and `jobs/wall_before.json`
+  (from the pre-fill, strength 0.85, feather 12), seeds 5 and 6 each. No before image exists yet.
+
+The open problem: **inpainting on the GitHub CPU runner is pathologically slow**, txt2img is not.
+- txt2img (the afters): ~11 s per step, 4 images in 24 minutes.
+- inpaint via `StableDiffusionXLInpaintPipeline.from_pipe(base)`: ~15 GB RAM on the 16 GB runner, 90 s per step.
+- inpaint via `StableDiffusionXLInpaintPipeline.from_single_file` (the current `gen.py`): RAM fine (~8 GB), but
+  the VAE encode before step 1 took ~50 minutes and step 1 took 3291 s. Runs 44618051079 and 44699136129 have the logs.
+- Suspects, not verified: bfloat16 on a CPU without native bf16 (the fp32 VAE upcast and back,
+  "Casting directly with to()" warnings), a dtype mix between fp32 image latents and the bf16 UNet, thread settings.
+  A quick way to find it: a tiny local or runner test that times one VAE encode and one UNet step in
+  float32 vs bfloat16 at 1024x768 (or at 512x384 to iterate fast), before queuing full jobs.
+- The workflow now commits every image as soon as it is saved (`COMMIT_EACH=1`) and skips PNGs that already exist,
+  so a cancelled run loses nothing. Start it by pushing a job/mask, or with `gh workflow run generate.yml`.
+
 ## The goal
 
 Two before/after pairs that look like **real phone or camera photos**, not renders.
@@ -32,10 +53,8 @@ read as more real than showroom perfection.
 
 ## Steps
 
-1. Wait for `outputs/sink_after/` and `outputs/wall_after/` (already queued). Look at every
-   image and pick the best "after" for each pair (include the candidate). If none is good,
-   adjust the prompt and queue a new job.
-2. For each chosen "after", make a mask with Pillow, `masks/<pair>.png`, the same size as the image:
+1. (Done) Afters chosen, see Status.
+2. (Done) For each chosen "after", make a mask with Pillow, `masks/<pair>.png`, the same size as the image:
    white where the "before" must differ, black everywhere else.
    - sink: the faucet and its base, the silicone joint along the backsplash, a band of countertop around them.
    - wall: the shelf and its contents (they must disappear) plus the wall areas where the crack, holes and stains go.
