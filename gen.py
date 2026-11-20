@@ -27,10 +27,13 @@ DEVICE = "cuda" if CUDA else "cpu"
 DTYPE = torch.float16 if CUDA else torch.bfloat16
 
 
-def load_base() -> StableDiffusionXLPipeline:
+def load(mode: str):
+    """Load only the pipeline this mode needs. (Building the inpaint pipeline from a txt2img one with
+    from_pipe kept a second set of references and pushed a 16 GB runner into swap: 90 s per step.)"""
     if not CUDA:
         torch.set_num_threads(os.cpu_count() or 4)
-    pipe = StableDiffusionXLPipeline.from_single_file(MODEL, torch_dtype=DTYPE, use_safetensors=True)
+    cls = StableDiffusionXLInpaintPipeline if mode == "inpaint" else StableDiffusionXLPipeline
+    pipe = cls.from_single_file(MODEL, torch_dtype=DTYPE, use_safetensors=True)
     pipe.scheduler = DPMSolverMultistepScheduler.from_config(
         pipe.scheduler.config, use_karras_sigmas=True, algorithm_type="dpmsolver++"
     )
@@ -45,15 +48,11 @@ def load_base() -> StableDiffusionXLPipeline:
 
 
 def run(a):
-    base = load_base()
+    pipe = load(a.mode)
     out = pathlib.Path(a.out)
     out.mkdir(parents=True, exist_ok=True)
     src = mask = soft = None
-    pipe = base
     if a.mode == "inpaint":
-        pipe = StableDiffusionXLInpaintPipeline.from_pipe(base)
-        if CUDA:
-            pipe.enable_model_cpu_offload()
         src = Image.open(a.image).convert("RGB")
         mask = Image.open(a.mask).convert("L").resize(src.size)
         soft = mask.filter(ImageFilter.GaussianBlur(a.feather))

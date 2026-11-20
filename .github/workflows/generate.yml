@@ -1,7 +1,7 @@
 name: generate
 
 # Runs when a job file is pushed (or by hand). Generates every job in jobs/ that has no outputs yet,
-# then commits the images back to outputs/. GitHub-hosted runners have no GPU: this is CPU work,
+# committing each image to outputs/ as soon as it is done. GitHub-hosted runners have no GPU: this is CPU work,
 # roughly 10-30 minutes per image.
 on:
   push:
@@ -53,7 +53,10 @@ jobs:
       - name: Generate
         env:
           HF_HUB_DISABLE_TELEMETRY: '1'
+          COMMIT_EACH: '1'
         run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           # log memory every 10 s so a kill at the RAM limit is visible in the log
           ( while true; do free -m | awk 'NR==2{print "mem used " $3 " MB, available " $7 " MB"}'; sleep 10; done ) &
           python -u run_jobs.py
