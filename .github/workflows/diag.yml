@@ -7,7 +7,7 @@ on:
 jobs:
   diag:
     runs-on: ubuntu-latest
-    timeout-minutes: 90
+    timeout-minutes: 40
     steps:
       - uses: actions/checkout@v4
 
@@ -28,6 +28,8 @@ jobs:
           pip install --quiet diffusers transformers accelerate safetensors pillow
 
       - name: Micro benchmark
+        timeout-minutes: 5
+        continue-on-error: true
         run: python -u diag.py micro
 
       - name: Download the model
@@ -36,10 +38,12 @@ jobs:
           curl -L --fail -s -o models/RealVisXL_V5.0_fp16.safetensors \
             https://huggingface.co/SG161222/RealVisXL_V5.0/resolve/main/RealVisXL_V5.0_fp16.safetensors
 
-      - name: Inpaint, float32
+      - name: Stages, float32
+        timeout-minutes: 15
+        continue-on-error: true
         run: python -u diag.py model float32
 
-      - name: Inpaint, bfloat16
-        timeout-minutes: 30
+      - name: Stages, bfloat16
+        timeout-minutes: 8
         continue-on-error: true
         run: python -u diag.py model bfloat16
