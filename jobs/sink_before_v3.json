@@ -1,0 +1,13 @@
+{
+  "mode": "inpaint",
+  "image": "inputs/sink_sketch.png",
+  "mask": "masks/sink_v2.png",
+  "prompt": "photo of a slightly neglected bathroom vanity close-up, old dull chrome single-lever faucet with chalky white limescale deposits and water spots, crusty white limescale around the faucet base, faint hard-water stain ring on the light grey quartz countertop, old silicone caulk joint spotted with black mold along the white subway tile backsplash, soft natural window daylight, realistic interior photography, Canon EOS R5, 35mm lens, f/4, sharp focus, true-to-life colors, high detail",
+  "negative": "cgi, 3d render, cartoon, illustration, painting, drawing, anime, plastic, oversaturated, text, watermark, logo, signature, people, person, hands, blurry, lowres, jpeg artifacts, deformed, distorted, warped lines, duplicate, frame, border, moss, algae, green, rust, brown, dirt, mud",
+  "seeds": [
+    5,
+    6
+  ],
+  "strength": 0.7,
+  "feather": 8
+}

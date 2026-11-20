@@ -1,0 +1,13 @@
+{
+  "mode": "inpaint",
+  "image": "inputs/wall_sketch.png",
+  "mask": "masks/wall_v2.png",
+  "prompt": "photo of a bare empty off-white living room wall, one thin hairline crack in the plaster, a few small old screw holes, small patches of dried white filler, faint grey scuff marks, slightly dingy old matte paint, soft natural daylight from a side window, realistic interior photography, Canon EOS R5, 35mm lens, f/5.6, sharp focus, true-to-life colors, high detail",
+  "negative": "cgi, 3d render, cartoon, illustration, painting, drawing, anime, plastic, oversaturated, text, watermark, logo, signature, people, person, hands, blurry, lowres, jpeg artifacts, deformed, distorted, warped lines, duplicate, frame, border, shelf, picture, furniture, peeling paint, hole in the wall, exposed brick, mold",
+  "seeds": [
+    5,
+    6
+  ],
+  "strength": 0.55,
+  "feather": 16
+}
