@@ -1,0 +1,13 @@
+{
+  "mode": "inpaint",
+  "image": "inputs/sink_touch.png",
+  "mask": "masks/sink_touch.png",
+  "prompt": "close-up photo of an old silicone caulk joint between a grey quartz countertop and white subway tiles, the caulk is discolored and spotted with black mold, dirty grout, neglected bathroom, soft natural window daylight, realistic interior photography, Canon EOS R5, 35mm lens, f/4, sharp focus, true-to-life colors, high detail",
+  "negative": "cgi, 3d render, cartoon, illustration, painting, drawing, anime, plastic, oversaturated, text, watermark, logo, signature, people, person, hands, blurry, lowres, jpeg artifacts, deformed, distorted, warped lines, duplicate, frame, border, moss, algae, green, rust",
+  "seeds": [
+    5,
+    6
+  ],
+  "strength": 0.4,
+  "feather": 5
+}

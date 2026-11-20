@@ -1,0 +1,13 @@
+{
+  "mode": "inpaint",
+  "image": "inputs/wall_touch.png",
+  "mask": "masks/wall_touch.png",
+  "prompt": "close-up photo of an off-white painted plaster wall with a small old screw hole, chipped paint around the hole, slightly dingy matte paint, soft natural daylight, realistic interior photography, Canon EOS R5, 35mm lens, f/5.6, sharp focus, true-to-life colors, high detail",
+  "negative": "cgi, 3d render, cartoon, illustration, painting, drawing, anime, plastic, oversaturated, text, watermark, logo, signature, people, person, hands, blurry, lowres, jpeg artifacts, deformed, distorted, warped lines, duplicate, frame, border, shelf, picture, furniture, nail, screw head, wall plug",
+  "seeds": [
+    5,
+    6
+  ],
+  "strength": 0.35,
+  "feather": 8
+}

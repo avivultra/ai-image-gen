@@ -198,6 +198,47 @@ def sink_v2(sink):
     return img, mask
 
 
+def touch_up():
+    """Third round: the v2 befores were good (inpaint strength 0.55), but the model had cleaned away the screw
+    holes and most of the mold. Sketch just those again on the chosen v2 images and repaint only small spots
+    at a low strength (inputs/*_touch.png, masks/*_touch.png)."""
+    wall_p = ROOT / "outputs/wall_before_v2/wall_before_v2_s5.png"
+    sink_p = ROOT / "outputs/sink_before_v2/sink_before_v2_s5.png"
+    if not (wall_p.exists() and sink_p.exists()):
+        return
+    rng = np.random.default_rng(7)
+    img = Image.open(wall_p).convert("RGB")
+    mask = Image.new("L", img.size, 0)
+    d, md = ImageDraw.Draw(img), ImageDraw.Draw(mask)
+    for x, y in [(262, 392), (300, 394), (455, 396), (640, 392), (668, 390), (478, 38)]:
+        d.ellipse((x - 6, y - 5, x + 5, y + 6), fill=(214, 209, 201))  # chipped paint around the hole
+        d.ellipse((x - 2.5, y - 2.5, x + 2.5, y + 2.5), fill=(52, 46, 42))
+        d.ellipse((x - 1, y - 2.5, x + 2.5, y + 1), fill=(30, 26, 24))
+        md.ellipse((x - 26, y - 26, x + 26, y + 26), fill=255)
+    img = Image.composite(img.filter(ImageFilter.GaussianBlur(0.5)), img, mask)
+    img.save(ROOT / "inputs/wall_touch.png")
+    mask.save(ROOT / "masks/wall_touch.png")
+
+    img = Image.open(sink_p).convert("RGB")
+    size = img.size
+    mask = Image.new("L", size, 0)
+    md = ImageDraw.Draw(mask)
+    joints = [[(398, 418), (550, 441), (642, 453)], [(790, 484), (900, 503), (1024, 529)],
+              [(762, 441), (900, 459), (1024, 478)]]
+    for j, (n_dark, n_tint) in zip(joints, ((520, 260), (620, 300), (160, 120))):
+        pts = along(j, step=2)
+        # uneven: a few dense colonies and sparse specks in between
+        centres = rng.choice(len(pts), 9)
+        colony = [pts[int(np.clip(c + rng.normal(0, 14), 0, len(pts) - 1))] for c in centres for _ in range(30)]
+        tint = blotches(size, rng, pts, 5, n_tint, (3, 2.2)).filter(ImageFilter.GaussianBlur(2.2))
+        img = Image.composite(Image.new("RGB", size, (112, 104, 86)), img, tint.point(lambda v: int(v * 0.4)))
+        dark = blotches(size, rng, colony + pts[::6], 1.9, n_dark, (1.6, 1.1)).filter(ImageFilter.GaussianBlur(0.7))
+        img = Image.composite(Image.new("RGB", size, (30, 29, 26)), img, dark.point(lambda v: int(v * 0.9)))
+        md.line(j, fill=255, width=22, joint="curve")
+    img.save(ROOT / "inputs/sink_touch.png")
+    mask.save(ROOT / "masks/sink_touch.png")
+
+
 def main():
     (ROOT / "masks").mkdir(exist_ok=True)
     (ROOT / "inputs").mkdir(exist_ok=True)
@@ -215,6 +256,7 @@ def main():
     wm2.save(ROOT / "masks/wall_v2.png")
     ss.save(ROOT / "inputs/sink_sketch.png")
     sm2.save(ROOT / "masks/sink_v2.png")
+    touch_up()
     if "--preview" in sys.argv:
         red = Image.new("RGB", sink.size, (255, 0, 0))
         Image.blend(sink, Image.composite(red, sink, sm), 0.45).save(ROOT / "preview_sink.png")
